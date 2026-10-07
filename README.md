@@ -1,46 +1,29 @@
 # RaposaScripts
 
-Base de um assistente de escrita com IA para Roblox Studio.
+Assistente de escrita com IA em um único script Lua.
 
-## Estrutura
+## Arquivo principal
 
-- `src/client/WriterAssistant.client.lua` — interface do assistente.
-- `src/server/AIWriter.server.lua` — valida pedidos e conversa com um backend HTTP.
-- `src/server/AIWriterConfig.lua` — configuração do endpoint.
+- `RaposaAI.lua`
 
-## Instalação no Roblox Studio
+O script cria:
+- tela de carregamento;
+- interface de chat;
+- histórico curto de conversa;
+- chamada direta à API Gemini;
+- resposta dentro do chat;
+- botão **Copiar** para copiar a resposta ao clipboard;
+- tratamento básico de erros HTTP/API.
 
-1. Crie um `RemoteEvent` em `ReplicatedStorage` chamado `AIWriterRequest`.
-2. Coloque `WriterAssistant.client.lua` em `StarterPlayer > StarterPlayerScripts`.
-3. Coloque `AIWriter.server.lua` em `ServerScriptService`.
-4. Coloque `AIWriterConfig.lua` como ModuleScript em `ServerScriptService`.
-5. Ative **Allow HTTP Requests** nas configurações do jogo.
-6. Configure `BackendUrl` em `AIWriterConfig.lua`.
+## Configuração
 
-O backend deve aceitar POST JSON:
+No início de `RaposaAI.lua`:
 
-```json
-{
-  "text": "texto do jogador",
-  "mode": "improve",
-  "userId": 123,
-  "username": "Player"
-}
+```lua
+local GEMINI_API_KEY = "COLE_SUA_CHAVE_AQUI"
+local MODEL = "gemini-3.8-flash"
 ```
 
-E responder:
+Use apenas uma chave sua e autorizada. Não coloque chaves reais em commits, mesmo em repositórios privados.
 
-```json
-{
-  "result": "texto retornado pela IA"
-}
-```
-
-## Modos
-
-- `improve` — melhorar o texto.
-- `correct` — corrigir ortografia e gramática.
-- `continue` — continuar o texto.
-- `shorten` — deixar mais curto.
-
-Nenhuma chave de API deve ficar no LocalScript.
+O script não contém rotação de chaves para contornar quotas/rate limits.
