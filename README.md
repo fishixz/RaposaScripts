@@ -2,28 +2,30 @@
 
 Assistente de escrita com IA em um único script Lua.
 
-## Arquivo principal
+## Fluxo
 
-- `RaposaAI.lua`
+1. Executa o `RaposaAI.lua`.
+2. Abre uma janela compacta, arrastável e redimensionável.
+3. O usuário cola as próprias chaves Gemini, uma por linha.
+4. O script valida as chaves informadas.
+5. Uma chave válida é usada durante a sessão.
+6. O chat é liberado.
+7. Respostas da IA podem ser copiadas com dois cliques/toques.
 
-O script cria:
-- tela de carregamento;
-- interface de chat;
-- histórico curto de conversa;
-- chamada direta à API Gemini;
-- resposta dentro do chat;
-- botão **Copiar** para copiar a resposta ao clipboard;
-- tratamento básico de erros HTTP/API.
+As chaves ficam somente em memória durante a execução e não são gravadas no arquivo.
 
-## Configuração
+## Interface
 
-No início de `RaposaAI.lua`:
+- janela que não ocupa a tela inteira;
+- arrastar pela barra superior;
+- redimensionar pelo canto inferior direito;
+- bolinha lateral para esconder/mostrar;
+- chat com histórico curto;
+- respostas curtas e objetivas por padrão;
+- Google Search habilitado para perguntas que dependam de informações atuais.
 
-```lua
-local GEMINI_API_KEY = "COLE_SUA_CHAVE_AQUI"
-local MODEL = "gemini-3.8-flash"
-```
+## Rate limit
 
-Use apenas uma chave sua e autorizada. Não coloque chaves reais em commits, mesmo em repositórios privados.
+Quando a API responder com `429 RESOURCE_EXHAUSTED`, o script informa o tempo de espera no chat e tenta novamente automaticamente com a chave ativa, respeitando `Retry-After` quando o ambiente disponibiliza esse cabeçalho.
 
-O script não contém rotação de chaves para contornar quotas/rate limits.
+O script não alterna automaticamente entre chaves para contornar quotas ou limites de uso.
