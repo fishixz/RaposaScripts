@@ -826,7 +826,7 @@ verify.MouseButton1Click:Connect(function()
 
     keyStatus.TextColor3 = Color3.fromRGB(225, 150, 120)
 
-    if limited > 0 and invalid == 0 then
+    if limited > 0 and invalid == 0 and rejected == 0 and errors == 0 then
         keyStatus.Text = "As chaves responderam com limite de uso. Aguarde e verifique novamente."
     else
         if rejected > 0 then
