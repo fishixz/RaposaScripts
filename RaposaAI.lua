@@ -3,8 +3,12 @@
 -- O script valida todas as chaves informadas, mas usa uma chave válida por sessão.
 -- Em HTTP 429, respeita Retry-After quando disponível e tenta novamente com backoff.
 
-local MODEL = "gemini-3.8-flash"
-local MAX_HISTORY_ITEMS = 10
+local PREFERRED_MODELS = {
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+}
 local DEFAULT_RETRY_SECONDS = 10
 local MAX_RETRY_SECONDS = 60
 
@@ -69,11 +73,16 @@ gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = parent
 
+local camera = workspace.CurrentCamera
+local viewport = camera and camera.ViewportSize or Vector2.new(1280, 720)
+local initialWidth = math.clamp(math.floor(viewport.X * 0.46), 360, 440)
+local initialHeight = math.clamp(math.floor(viewport.Y * 0.60), 320, 380)
+
 local main = Instance.new("Frame")
 main.Name = "Window"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(600, 500)
+main.Size = UDim2.fromOffset(initialWidth, initialHeight)
 main.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
 main.BorderSizePixel = 0
 main.ClipsDescendants = false
@@ -87,7 +96,7 @@ mainStroke.Parent = main
 
 local top = Instance.new("Frame")
 top.Name = "Topbar"
-top.Size = UDim2.new(1, 0, 0, 56)
+top.Size = UDim2.new(1, 0, 0, 46)
 top.BackgroundTransparency = 1
 top.Active = true
 top.Parent = main
@@ -98,7 +107,7 @@ title.Size = UDim2.new(1, -110, 1, 0)
 title.BackgroundTransparency = 1
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Font = Enum.Font.GothamBold
-title.TextSize = 19
+title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(245, 245, 248)
 title.Text = "Raposa AI"
 title.Parent = top
@@ -119,13 +128,13 @@ Instance.new("UICorner", close).CornerRadius = UDim.new(0, 9)
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleBall"
 toggle.AnchorPoint = Vector2.new(0, 0.5)
-toggle.Size = UDim2.fromOffset(44, 44)
+toggle.Size = UDim2.fromOffset(38, 38)
 toggle.BackgroundColor3 = Color3.fromRGB(239, 111, 55)
 toggle.BorderSizePixel = 0
 toggle.Text = "R"
 toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggle.Font = Enum.Font.GothamBold
-toggle.TextSize = 16
+toggle.TextSize = 14
 toggle.Parent = gui
 Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
 
@@ -148,8 +157,8 @@ resizeHandle.ZIndex = 20
 resizeHandle.Parent = main
 
 local body = Instance.new("Frame")
-body.Position = UDim2.fromOffset(12, 56)
-body.Size = UDim2.new(1, -24, 1, -68)
+body.Position = UDim2.fromOffset(10, 46)
+body.Size = UDim2.new(1, -20, 1, -56)
 body.BackgroundColor3 = Color3.fromRGB(23, 24, 29)
 body.BorderSizePixel = 0
 body.ClipsDescendants = true
@@ -169,7 +178,7 @@ loadingTitle.BackgroundTransparency = 1
 loadingTitle.Text = "Carregando Raposa AI"
 loadingTitle.TextColor3 = Color3.fromRGB(245, 245, 248)
 loadingTitle.Font = Enum.Font.GothamBold
-loadingTitle.TextSize = 23
+loadingTitle.TextSize = 19
 loadingTitle.Parent = loadingPage
 
 local loadingStatus = Instance.new("TextLabel")
@@ -190,19 +199,19 @@ keyPage.Visible = false
 keyPage.Parent = body
 
 local keyTitle = Instance.new("TextLabel")
-keyTitle.Position = UDim2.fromOffset(22, 18)
+keyTitle.Position = UDim2.fromOffset(18, 12)
 keyTitle.Size = UDim2.new(1, -44, 0, 32)
 keyTitle.BackgroundTransparency = 1
 keyTitle.TextXAlignment = Enum.TextXAlignment.Left
 keyTitle.Font = Enum.Font.GothamBold
-keyTitle.TextSize = 20
+keyTitle.TextSize = 17
 keyTitle.TextColor3 = Color3.fromRGB(245, 245, 248)
 keyTitle.Text = "Conectar ao Gemini"
 keyTitle.Parent = keyPage
 
 local keyHelp = Instance.new("TextLabel")
-keyHelp.Position = UDim2.fromOffset(22, 52)
-keyHelp.Size = UDim2.new(1, -44, 0, 42)
+keyHelp.Position = UDim2.fromOffset(18, 42)
+keyHelp.Size = UDim2.new(1, -36, 0, 40)
 keyHelp.BackgroundTransparency = 1
 keyHelp.TextXAlignment = Enum.TextXAlignment.Left
 keyHelp.TextYAlignment = Enum.TextYAlignment.Top
@@ -214,8 +223,8 @@ keyHelp.Text = "Cole suas chaves do Gemini abaixo, uma por linha. Elas ficam som
 keyHelp.Parent = keyPage
 
 local keyBox = Instance.new("TextBox")
-keyBox.Position = UDim2.fromOffset(22, 102)
-keyBox.Size = UDim2.new(1, -44, 1, -190)
+keyBox.Position = UDim2.fromOffset(18, 90)
+keyBox.Size = UDim2.new(1, -36, 1, -174)
 keyBox.BackgroundColor3 = Color3.fromRGB(31, 33, 40)
 keyBox.BorderSizePixel = 0
 keyBox.ClearTextOnFocus = false
@@ -240,7 +249,7 @@ keyPadding.PaddingRight = UDim.new(0, 12)
 keyPadding.Parent = keyBox
 
 local keyStatus = Instance.new("TextLabel")
-keyStatus.Position = UDim2.new(0, 22, 1, -80)
+keyStatus.Position = UDim2.new(0, 18, 1, -72)
 keyStatus.Size = UDim2.new(1, -170, 0, 48)
 keyStatus.BackgroundTransparency = 1
 keyStatus.TextXAlignment = Enum.TextXAlignment.Left
@@ -253,8 +262,8 @@ keyStatus.Parent = keyPage
 
 local verify = Instance.new("TextButton")
 verify.AnchorPoint = Vector2.new(1, 1)
-verify.Position = UDim2.new(1, -22, 1, -24)
-verify.Size = UDim2.fromOffset(132, 44)
+verify.Position = UDim2.new(1, -18, 1, -18)
+verify.Size = UDim2.fromOffset(112, 38)
 verify.BackgroundColor3 = Color3.fromRGB(239, 111, 55)
 verify.BorderSizePixel = 0
 verify.Text = "Verificar"
@@ -271,8 +280,8 @@ chatPage.Visible = false
 chatPage.Parent = body
 
 local messages = Instance.new("ScrollingFrame")
-messages.Position = UDim2.fromOffset(12, 12)
-messages.Size = UDim2.new(1, -24, 1, -94)
+messages.Position = UDim2.fromOffset(10, 10)
+messages.Size = UDim2.new(1, -20, 1, -82)
 messages.BackgroundColor3 = Color3.fromRGB(27, 29, 35)
 messages.BorderSizePixel = 0
 messages.ScrollBarThickness = 4
@@ -294,8 +303,8 @@ msgLayout.SortOrder = Enum.SortOrder.LayoutOrder
 msgLayout.Parent = messages
 
 local input = Instance.new("TextBox")
-input.Position = UDim2.new(0, 12, 1, -70)
-input.Size = UDim2.new(1, -106, 0, 58)
+input.Position = UDim2.new(0, 10, 1, -62)
+input.Size = UDim2.new(1, -94, 0, 52)
 input.BackgroundColor3 = Color3.fromRGB(31, 33, 40)
 input.BorderSizePixel = 0
 input.ClearTextOnFocus = false
@@ -321,8 +330,8 @@ inputPadding.Parent = input
 
 local send = Instance.new("TextButton")
 send.AnchorPoint = Vector2.new(1, 1)
-send.Position = UDim2.new(1, -12, 1, -12)
-send.Size = UDim2.fromOffset(82, 58)
+send.Position = UDim2.new(1, -10, 1, -10)
+send.Size = UDim2.fromOffset(74, 52)
 send.BackgroundColor3 = Color3.fromRGB(239, 111, 55)
 send.BorderSizePixel = 0
 send.Text = "Enviar"
@@ -333,8 +342,9 @@ send.Parent = chatPage
 Instance.new("UICorner", send).CornerRadius = UDim.new(0, 10)
 
 local activeKey = nil
+local activeModel = nil
 local validKeys = {}
-local history = {}
+local previousInteractionId = nil
 local busy = false
 local hidden = false
 local retryCount = 0
@@ -427,8 +437,8 @@ UserInputService.InputChanged:Connect(function(inputObject)
     local camera = workspace.CurrentCamera
     local viewport = camera and camera.ViewportSize or Vector2.new(1920, 1080)
 
-    local newWidth = math.clamp(resizeSize.X + delta.X, 420, math.max(420, viewport.X - 40))
-    local newHeight = math.clamp(resizeSize.Y + delta.Y, 340, math.max(340, viewport.Y - 40))
+    local newWidth = math.clamp(resizeSize.X + delta.X, 330, math.max(330, viewport.X - 30))
+    local newHeight = math.clamp(resizeSize.Y + delta.Y, 300, math.max(300, viewport.Y - 30))
 
     main.Size = UDim2.fromOffset(newWidth, newHeight)
 end)
@@ -540,15 +550,50 @@ local function parseKeys(raw)
     return keys
 end
 
-local function extractText(data)
-    local output = {}
+local function getBody(response)
+    if type(response) ~= "table" then
+        return ""
+    end
+    return tostring(response.Body or response.body or response.ResponseBody or response.responseBody or "")
+end
 
-    for _, candidate in ipairs(data.candidates or {}) do
-        local content = candidate.content
-        if content and content.parts then
-            for _, part in ipairs(content.parts) do
-                if type(part.text) == "string" and part.text ~= "" then
-                    table.insert(output, part.text)
+local function getHeaders(response)
+    if type(response) ~= "table" then
+        return {}
+    end
+    return response.Headers or response.headers or {}
+end
+
+local function getStatus(response)
+    if type(response) ~= "table" then
+        return 0
+    end
+
+    local status = response.StatusCode
+        or response.status_code
+        or response.Status
+        or response.status
+        or response.Code
+        or response.code
+
+    if not status and response.Success == true then
+        status = 200
+    end
+
+    return tonumber(status or 0) or 0
+end
+
+local function extractInteractionText(data)
+    if type(data.output_text) == "string" and data.output_text ~= "" then
+        return data.output_text:match("^%s*(.-)%s*$") or data.output_text
+    end
+
+    local output = {}
+    for _, step in ipairs(data.steps or {}) do
+        if step.type == "model_output" then
+            for _, block in ipairs(step.content or {}) do
+                if block.type == "text" and type(block.text) == "string" and block.text ~= "" then
+                    table.insert(output, block.text)
                 end
             end
         end
@@ -557,12 +602,8 @@ local function extractText(data)
     return table.concat(output, "\n"):match("^%s*(.-)%s*$") or ""
 end
 
-local function getStatus(response)
-    return tonumber(response.StatusCode or response.Status or 0) or 0
-end
-
 local function getRetrySeconds(response, attempt)
-    local headers = response.Headers or response.headers or {}
+    local headers = getHeaders(response)
     local retryAfter = headers["Retry-After"]
         or headers["retry-after"]
         or headers["Retry-after"]
@@ -572,7 +613,7 @@ local function getRetrySeconds(response, attempt)
         return math.clamp(math.ceil(numeric), 1, MAX_RETRY_SECONDS)
     end
 
-    local body = tostring(response.Body or "")
+    local body = getBody(response)
     local decodedOk, data = pcall(function()
         return HttpService:JSONDecode(body)
     end)
@@ -595,42 +636,118 @@ local function getRetrySeconds(response, attempt)
     return math.min(DEFAULT_RETRY_SECONDS * math.max(1, attempt), MAX_RETRY_SECONDS)
 end
 
-local function requestGemini(apiKey, userText, includeHistory, useSearch)
-    local contents = {}
+local function supportsGenerateContent(model)
+    for _, method in ipairs(model.supportedGenerationMethods or {}) do
+        if method == "generateContent" then
+            return true
+        end
+    end
+    return false
+end
 
-    if includeHistory then
-        for _, item in ipairs(history) do
-            table.insert(contents, {
-                role = item.role,
-                parts = {{text = item.text}}
-            })
+local function chooseModel(data)
+    local available = {}
+
+    for _, model in ipairs(data.models or {}) do
+        if supportsGenerateContent(model) then
+            local name = tostring(model.name or ""):gsub("^models/", "")
+            if name ~= "" then
+                available[name] = true
+            end
         end
     end
 
-    table.insert(contents, {
-        role = "user",
-        parts = {{text = userText}}
-    })
+    for _, preferred in ipairs(PREFERRED_MODELS) do
+        if available[preferred] then
+            return preferred
+        end
+    end
 
+    for name in pairs(available) do
+        if name:find("gemini", 1, true) and name:find("flash", 1, true) then
+            return name
+        end
+    end
+
+    return nil
+end
+
+local function validateKey(apiKey)
+    local ok, response = pcall(function()
+        return requestFn({
+            Url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
+            Method = "GET",
+            Headers = {
+                ["x-goog-api-key"] = apiKey
+            }
+        })
+    end)
+
+    if not ok then
+        return false, "network:" .. tostring(response)
+    end
+
+    local status = getStatus(response)
+    local body = getBody(response)
+
+    if status >= 200 and status < 300 then
+        local decodedOk, data = pcall(function()
+            return HttpService:JSONDecode(body)
+        end)
+
+        if not decodedOk then
+            return false, "bad_json"
+        end
+
+        local model = chooseModel(data)
+        if model then
+            return true, "valid", model
+        end
+
+        return false, "no_supported_model"
+    end
+
+    if status == 429 then
+        return false, "rate_limited"
+    end
+
+    if status == 400 or status == 401 or status == 403 then
+        local lower = body:lower()
+        if lower:find("unrestricted", 1, true)
+            or lower:find("authentication", 1, true)
+            or lower:find("api key", 1, true) then
+            return false, "key_rejected"
+        end
+        return false, "invalid"
+    end
+
+    if status == 0 then
+        return false, "executor_response_unknown"
+    end
+
+    return false, "http_" .. tostring(status)
+end
+
+local function requestGemini(apiKey, userText)
     local payload = {
-        system_instruction = {
-            parts = {{text = SYSTEM_PROMPT}}
+        model = activeModel,
+        input = userText,
+        system_instruction = SYSTEM_PROMPT,
+        tools = {
+            {type = "google_search"}
         },
-        contents = contents,
-        generationConfig = {
-            temperature = 0.45,
-            maxOutputTokens = 420
+        generation_config = {
+            thinking_level = "low",
+            max_output_tokens = 360
         }
     }
 
-    if useSearch then
-        payload.tools = {
-            {google_search = {}}
-        }
+    if previousInteractionId then
+        payload.previous_interaction_id = previousInteractionId
     end
 
     return requestFn({
-        Url = "https://generativelanguage.googleapis.com/v1beta/models/" .. MODEL .. ":generateContent",
+        Url = "https://generativelanguage.googleapis.com/v1beta/interactions",
         Method = "POST",
         Headers = {
             ["Content-Type"] = "application/json",
@@ -640,36 +757,10 @@ local function requestGemini(apiKey, userText, includeHistory, useSearch)
     })
 end
 
-local function validateKey(apiKey)
-    local ok, response = pcall(function()
-        return requestGemini(apiKey, "Responda somente com OK.", false, false)
-    end)
-
-    if not ok then
-        return false, "network"
-    end
-
-    local status = getStatus(response)
-
-    if status >= 200 and status < 300 then
-        return true, "valid"
-    end
-
-    if status == 429 then
-        return false, "rate_limited"
-    end
-
-    if status == 400 or status == 401 or status == 403 then
-        return false, "invalid"
-    end
-
-    return false, "error_" .. tostring(status)
-end
-
 local function openChat()
     keyPage.Visible = false
     chatPage.Visible = true
-    title.Text = "Raposa AI • conectado"
+    title.Text = "Raposa AI • " .. tostring(activeModel or "conectado")
     addBubble("Pronto. A IA está conectada. Dê dois cliques/toques em uma resposta para copiá-la.", false, true)
 end
 
@@ -691,20 +782,29 @@ verify.MouseButton1Click:Connect(function()
 
     local limited = 0
     local invalid = 0
+    local rejected = 0
     local errors = 0
+    local lastError = nil
 
     for index, key in ipairs(keys) do
         keyStatus.Text = ("Verificando chave %d de %d..."):format(index, #keys)
 
-        local ok, reason = validateKey(key)
+        local ok, reason, model = validateKey(key)
         if ok then
-            table.insert(validKeys, key)
+            table.insert(validKeys, {
+                key = key,
+                model = model,
+            })
         elseif reason == "rate_limited" then
             limited = limited + 1
         elseif reason == "invalid" then
             invalid = invalid + 1
+        elseif reason == "key_rejected" then
+            rejected = rejected + 1
+            lastError = "A chave foi recusada pela API. Gere/atualize a chave no Google AI Studio."
         else
             errors = errors + 1
+            lastError = reason
         end
     end
 
@@ -713,11 +813,13 @@ verify.MouseButton1Click:Connect(function()
     busy = false
 
     if #validKeys > 0 then
-        activeKey = validKeys[1]
+        activeKey = validKeys[1].key
+        activeModel = validKeys[1].model
+        previousInteractionId = nil
         keyBox.Text = ""
         keyStatus.TextColor3 = Color3.fromRGB(132, 205, 150)
-        keyStatus.Text = ("%d chave(s) válida(s). Conectando..."):format(#validKeys)
-        task.wait(0.45)
+        keyStatus.Text = ("%d chave(s) válida(s). Modelo: %s"):format(#validKeys, activeModel)
+        task.wait(0.35)
         openChat()
         return
     end
@@ -727,11 +829,17 @@ verify.MouseButton1Click:Connect(function()
     if limited > 0 and invalid == 0 then
         keyStatus.Text = "As chaves responderam com limite de uso. Aguarde e verifique novamente."
     else
-        keyStatus.Text = ("Nenhuma chave disponível. Inválidas: %d • limitadas: %d • outros erros: %d"):format(
-            invalid,
-            limited,
-            errors
-        )
+        if rejected > 0 then
+            keyStatus.Text = "Chave recusada pelo Gemini. Em 2026, chaves antigas/irrestritas podem ser bloqueadas; gere uma nova no AI Studio."
+        elseif lastError then
+            keyStatus.Text = "Falha ao validar: " .. tostring(lastError)
+        else
+            keyStatus.Text = ("Nenhuma chave disponível. Inválidas: %d • limitadas: %d • erros: %d"):format(
+                invalid,
+                limited,
+                errors
+            )
+        end
     end
 end)
 
@@ -746,7 +854,7 @@ local function askGemini(userText)
         attempt = attempt + 1
 
         local ok, response = pcall(function()
-            return requestGemini(activeKey, userText, true, true)
+            return requestGemini(activeKey, userText)
         end)
 
         if not ok then
@@ -759,23 +867,21 @@ local function askGemini(userText)
             retryCount = 0
 
             local decodeOk, data = pcall(function()
-                return HttpService:JSONDecode(response.Body)
+                return HttpService:JSONDecode(getBody(response))
             end)
 
             if not decodeOk then
-                return nil, "A API retornou uma resposta inválida."
+                return nil, "A API respondeu, mas o executor entregou um corpo inválido."
             end
 
-            local text = extractText(data)
+            local text = extractInteractionText(data)
             if text == "" then
-                return nil, "A IA não retornou texto."
+                local apiStatus = tostring(data.status or "desconhecido")
+                return nil, "A IA não retornou texto. Status da interação: " .. apiStatus
             end
 
-            table.insert(history, {role = "user", text = userText})
-            table.insert(history, {role = "model", text = text})
-
-            while #history > MAX_HISTORY_ITEMS do
-                table.remove(history, 1)
+            if type(data.id) == "string" and data.id ~= "" then
+                previousInteractionId = data.id
             end
 
             return text
@@ -803,7 +909,7 @@ local function askGemini(userText)
         elseif status == 400 or status == 401 or status == 403 then
             return nil, "A chave ativa foi recusada pela API. Volte e informe outra chave."
         else
-            local detail = tostring(response.Body or "")
+            local detail = getBody(response)
             if #detail > 220 then
                 detail = detail:sub(1, 220) .. "..."
             end
